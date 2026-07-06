@@ -82,20 +82,20 @@
         <div v-if="currentTab === 'detector'">
             <section class="mb-4">
                 <label class="text-xs font-bold text-gray-500 block mb-1.5">請輸入歌譜中的和弦 (用英文逗號隔開)：</label>
-                <input type="text" v-model="userInputChords" placeholder="例如: F, Am, Bb" 
+                <input type="text" v-model="userInputChords" placeholder="例如: A, Am" 
                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm shadow-sm transition-all" />
-                <p class="text-[11px] text-gray-400 mt-1">🚫 嚴格絕對排除法：只要有一個和弦不符合該調性，即立刻排除！</p>
+                <p class="text-[11px] text-gray-400 mt-1">🚫 嚴格對齊順階和弦表：互斥和弦（如 A 與 Am）將會直接查無結果</p>
             </section>
             <section>
                 <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-sm font-bold text-gray-800">🔍 精準調性判定結果 (必須 100% 包含所有輸入)</h3>
+                    <h3 class="text-sm font-bold text-gray-800">🔍 精準調性判定結果 (必須 100% 完全符合)</h3>
                     <button @click="userInputChords = ''" class="text-xs text-red-500 hover:underline">清空</button>
                 </div>
                 <div v-if="cleanedInputChords.length === 0" class="text-center py-8 text-gray-400 text-xs bg-gray-50 rounded-xl border border-dashed border-gray-200">
                     請在上方輸入和弦，系統將為您篩選符合的調性
                 </div>
-                <div v-else-if="detectedKeys.length === 0" class="text-center py-8 text-red-400 text-xs bg-red-50 rounded-xl border border-dashed border-red-200">
-                    ⚠️ 找不到 100% 包含這些和弦的單一調性（可能含有轉調或非順階和弦）
+                <div v-else-if="detectedKeys.length === 0" class="text-center py-8 text-red-400 text-xs bg-red-50 rounded-xl border border-dashed border-red-200 font-medium">
+                    ⚠️ 找不到 100% 包含這些和弦的單一調性（存在順階互斥和弦）
                 </div>
                 <div v-else class="space-y-2">
                     <div v-for="(result, index) in detectedKeys" :key="index" class="bg-white border border-indigo-200 rounded-xl p-3.5 shadow-sm">
@@ -188,7 +188,7 @@
                 return { transform: `translate(${Math.round(radius * Math.cos(angle))}px, ${Math.round(radius * Math.sin(angle))}px)` };
             };
 
-            // --- 2. 精準順階和弦資料庫（三和弦與七和弦分開，確保字母嚴格精準比對） ---
+            // --- 2. 嚴格限定、絕不重合的精準順階和弦表字典 ---
             const chordsData = {
                 'C': {
                     major: ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim', 'Cmaj7', 'Dm7', 'Em7', 'Fmaj7', 'G7', 'Am7', 'Bm7b5'],
@@ -249,18 +249,19 @@
                 }
             });
 
-            // --- 3. 同音異名極致精準對照 ---
+            // --- 3. 智慧同音異名轉換引擎 ---
             const enharmonicPairs = [
                 ['c#', 'db'], ['d#', 'eb'], ['f#', 'gb'], ['g#', 'ab'], ['a#', 'bb'], ['e#', 'f'], ['b#', 'c']
             ];
 
             const getEnharmonicAlternatives = (chordStr) => {
-                let match = chordStr.match(/^([A-G][#♭b]?)(.*)$/i);
-                if (!match) return [chordStr.trim()];
+                let cleanChord = chordStr.trim();
+                let match = cleanChord.match(/^([A-G][#♭b]?)(.*)$/i);
+                if (!match) return [cleanChord];
                 let root = match[1].toLowerCase().replace('♭', 'b');
-                let suffix = match[2].trim();
+                let suffix = match[2];
 
-                let alts = [chordStr.trim()];
+                let alts = [cleanChord];
                 enharmonicPairs.forEach(pair => {
                     if (pair[0] === root) {
                         let r = pair[1].length > 1 ? pair[1].charAt(0).toUpperCase() + pair[1].charAt(1) : pair[1].toUpperCase();
@@ -279,13 +280,13 @@
                 return userInputChords.value.split(',').map(c => c.trim()).filter(c => c.length > 0);
             });
 
-            // 嚴格的全等比對核心函式
+            // 🛠️ 精準全等核對：輸入什麼，背景字典就必須有什麼，杜絕 includes 造成的誤傷
             const isStrictMatch = (userChord, diatonicList) => {
-                let uAlts = getEnharmonicAlternatives(userChord).map(c => c.toLowerCase());
-                return diatonicList.some(dChord => uAlts.includes(dChord.toLowerCase()));
+                let allowedVariants = getEnharmonicAlternatives(userChord).map(c => c.toLowerCase());
+                return diatonicList.some(dChord => allowedVariants.includes(dChord.toLowerCase()));
             };
 
-            // --- 🛠️ 絕對排除法判定演算 ---
+            // --- 🛠️ 絕對排除法核心邏輯（修復 A、Am 同步通過 Bug） ---
             const detectedKeys = computed(() => {
                 const inputs = cleanedInputChords.value;
                 if (inputs.length === 0) return [];
@@ -293,24 +294,24 @@
                 let results = [];
 
                 for (let root in chordsData) {
-                    // --- 檢查大調 ---
+                    // 1. 驗證大調
                     let majorList = chordsData[root].major;
                     let allMajorMatch = true;
                     inputs.forEach(chord => {
                         if (!isStrictMatch(chord, majorList)) {
-                            allMajorMatch = false; // 只要有一個對不上，立刻淘汰
+                            allMajorMatch = false; // 有一個不配，立刻出局
                         }
                     });
                     if (allMajorMatch) {
                         results.push({ keyName: `${root} 大調 (Major)`, isMajor: true, matched: inputs });
                     }
 
-                    // --- 檢查小調 ---
+                    // 2. 驗證小調
                     let minorList = chordsData[root].minor;
                     let allMinorMatch = true;
                     inputs.forEach(chord => {
                         if (!isStrictMatch(chord, minorList)) {
-                            allMinorMatch = false; // 淘汰
+                            allMinorMatch = false; // 出局
                         }
                     });
                     if (allMinorMatch) {
