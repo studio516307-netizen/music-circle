@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>樂理助手：五度圈與調性查詢</title>
+    <!-- 引入 Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入 Tailwind CSS 用於美化介面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f4f8; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-lg flex flex-col justify-between">
+    
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white text-center py-4 shadow-md">
+        <h1 class="text-xl font-bold tracking-wider">🎵 互動樂理大師</h1>
+        <p class="text-xs text-indigo-200 mt-1">五度圈與調性速查工具</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 overflow-y-auto">
+        
+        <!-- Section 1: 五度圈互動圖 -->
+        <section class="mb-6">
+            <h2 class="text-lg font-bold text-gray-700 mb-3 flex items-center">
+                <span class="mr-2">⭕</span> 互動五度圈 (Circle of Fifths)
+            </h2>
+            <p class="text-xs text-gray-500 mb-4">點擊下方任一調性，即可查詢其詳細音階與關係小調：</p>
+            
+            <!-- 圓形五度圈佈局 -->
+            <div class="relative w-72 h-72 mx-auto bg-gray-50 rounded-full border-4 border-indigo-100 shadow-inner flex items-center justify-center">
+                <div v-for="(key, index) in keys" :key="key.major" 
+                     :style="getCirclePosition(index)"
+                     @click="selectKey(key)"
+                     :class="['absolute w-12 h-12 flex flex-col items-center justify-center rounded-full cursor-pointer transition-all transform hover:scale-110 shadow',
+                              selectedKey.major === key.major ? 'bg-indigo-600 text-white font-bold scale-105 ring-4 ring-indigo-300' : 'bg-white text-gray-800 hover:bg-indigo-50']">
+                    <span class="text-sm leading-none">{{ key.major }}</span>
+                    <span class="text-[10px] opacity-70 leading-none mt-0.5">{{ key.minor }}m</span>
+                </div>
+                <!-- 中心點裝飾 -->
+                <div class="text-center pointer-events-none">
+                    <div class="text-xs text-gray-400">當前選擇</div>
+                    <div class="text-xl font-bold text-indigo-600">{{ selectedKey.major }} 大調</div>
+                </div>
+            </div>
+        </section>
+
+        <hr class="border-gray-200 my-4">
+
+        <!-- Section 2: 調性詳細資訊面板 -->
+        <section class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <span class="mr-2">📋</span> 調性詳細報告：{{ selectedKey.major }} 大調
+            </h2>
+
+            <!-- 關係小調 -->
+            <div class="mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                <div class="text-xs text-gray-500 font-medium">關係小調 (Relative Minor)</div>
+                <div class="text-lg font-bold text-purple-700 mt-1">
+                    {{ selectedKey.minor }} 自然小調 ({{ selectedKey.minor }}m)
+                </div>
+            </div>
+
+            <!-- 大調音階 -->
+            <div class="mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                <div class="text-xs text-gray-500 font-medium">大調自然音階 (Major Scale)</div>
+                <div class="flex gap-1.5 mt-2 overflow-x-auto pb-1">
+                    <span v-for="(note, i) in selectedKey.majorScale" :key="i"
+                          class="bg-indigo-100 text-indigo-800 font-semibold px-2.5 py-1 rounded text-sm min-w-[2rem] text-center">
+                        {{ note }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 小調音階 -->
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                <div class="text-xs text-gray-500 font-medium">關係小調自然音階 (Natural Minor Scale)</div>
+                <div class="flex gap-1.5 mt-2 overflow-x-auto pb-1">
+                    <span v-for="(note, i) in selectedKey.minorScale" :key="i"
+                          class="bg-purple-100 text-purple-800 font-semibold px-2.5 py-1 rounded text-sm min-w-[2rem] text-center">
+                        {{ note }}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- 升降記號提示 -->
+            <div class="mt-3 text-right text-xs text-gray-400 italic">
+                {{ selectedKey.signature }}
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 text-center py-3 text-xs text-gray-400 border-t border-gray-200">
+        💡 提示：順時針每隔一格增加一個升號 (#)，逆時針增加一個降號 (♭)
+    </footer>
+
+</div>
+
+<script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+        setup() {
+            // 完整的 12 個調性資料（依據五度圈順時針排列：C -> G -> D ...）
+            const keys = [
+                { major: 'C', minor: 'A', signature: '無升降記號', majorScale: ['C', 'D', 'E', 'F', 'G', 'A', 'B'], minorScale: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
+                { major: 'G', minor: 'E', signature: '1 個升號 (#F)', majorScale: ['G', 'A', 'B', 'C', 'D', 'E', 'F#'], minorScale: ['E', 'F#', 'G', 'A', 'B', 'C', 'D'] },
+                { major: 'D', minor: 'B', signature: '2 個升號 (#F, #C)', majorScale: ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'], minorScale: ['B', 'C#', 'D', 'E', 'F#', 'G', 'A'] },
+                { major: 'A', minor: 'F#', signature: '3 個升號 (#F, #C, #G)', majorScale: ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'], minorScale: ['F#', 'G#', 'A', 'B', 'C#', 'D', 'E'] },
+                { major: 'E', minor: 'C#', signature: '4 個升號 (#F, #C, #G, #D)', majorScale: ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#'], minorScale: ['C#', 'D#', 'E', 'F#', 'G#', 'A', 'B'] },
+                { major: 'B', minor: 'G#', signature: '5 個升號 (#F, #C, #G, #D, #A)', majorScale: ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#'], minorScale: ['G#', 'A#', 'B', 'C#', 'D#', 'E', 'F#'] },
+                { major: 'F#', minor: 'D#', signature: '6 個升號 / 6 個降號', majorScale: ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#'], minorScale: ['D#', 'E#', 'F#', 'G#', 'A#', 'B', 'C#'] },
+                { major: 'D♭', minor: 'B♭', signature: '5 個降號 (♭B, ♭E, ♭A, ♭D, ♭G)', majorScale: ['D♭', 'E♭', 'F', 'G♭', 'A♭', 'B♭', 'C'], minorScale: ['B♭', 'C', 'D♭', 'E♭', 'F', 'G♭', 'A♭'] },
+                { major: 'A♭', minor: 'F', signature: '4 個降號 (♭B, ♭E, ♭A, ♭D)', majorScale: ['A♭', 'B♭', 'C', 'D♭', 'E♭', 'F', 'G♭'], minorScale: ['F', 'G', 'A♭', 'B♭', 'C', 'D♭', 'E♭'] },
+                { major: 'E♭', minor: 'C', signature: '3 個降號 (♭B, ♭E, ♭A)', majorScale: ['E♭', 'F', 'G', 'A♭', 'B♭', 'C', 'D'], minorScale: ['C', 'D', 'E♭', 'F', 'G', 'A♭', 'B♭'] },
+                { major: 'B♭', minor: 'G', signature: '2 個降號 (♭B, ♭E)', majorScale: ['B♭', 'C', 'D', 'E♭', 'F', 'G', 'A'], minorScale: ['G', 'A', 'B♭', 'C', 'D', 'E♭', 'F'] },
+                { major: 'F', minor: 'D', signature: '1 個降號 (♭B)', majorScale: ['F', 'G', 'A', 'B♭', 'C', 'D', 'E'], minorScale: ['D', 'E', 'F', 'G', 'A', 'B♭', 'C'] }
+            ];
+
+            // 預設選擇 C 大調
+            const selectedKey = ref(keys[0]);
+
+            const selectKey = (key) => {
+                selectedKey.value = key;
+            };
+
+            // 用數學三角函數動態計算 12 個調在圓圈上的 (x, y) 座標
+            const getCirclePosition = (index) => {
+                const total = 12;
+                const radius = 110; // 圓半徑 (px)
+                // 減去 Math.PI / 2 是為了讓 C 調（index 0）保持在正上方 12 點鐘方向
+                const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+                
+                const x = Math.round(radius * Math.cos(angle));
+                const y = Math.round(radius * Math.sin(angle));
+                
+                // 返回 CSS 樣式，利用 translate 移動到相對中心點的位置
+                return {
+                    transform: `translate(${x}px, ${y}px)`
+                };
+            };
+
+            return {
+                keys,
+                selectedKey,
+                selectKey,
+                getCirclePosition
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
