@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>樂理助手：五度圈與調性查詢</title>
-    <!-- 引入 Vue 3 -->
+    <title>音樂小工具 - 互動樂理大師</title>
+    <meta name="description" content="集合互動五度圈、順階和弦速查、逆向和弦推算調性的綜合音樂小工具。">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- 引入 Tailwind CSS 用於美化介面 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
@@ -17,100 +16,129 @@
 
 <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-lg flex flex-col justify-between">
     
-    <!-- Header -->
     <header class="bg-indigo-600 text-white text-center py-4 shadow-md">
-        <h1 class="text-xl font-bold tracking-wider">🎵 互動樂理大師</h1>
-        <p class="text-xs text-indigo-200 mt-1">五度圈與調性速查工具</p>
+        <h1 class="text-xl font-bold tracking-wider">🎵 音樂小工具</h1>
+        <p class="text-xs text-indigo-200 mt-1">互動五度圈 & 和弦速查 & 逆向定調</p>
     </header>
 
-    <!-- Main Content -->
+    <div class="flex border-b border-gray-200 bg-gray-50 text-center">
+        <button @click="currentTab = 'circle'" :class="['flex-1 py-3 text-xs font-bold transition-all border-b-2', currentTab === 'circle' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-gray-500']">⭕ 五度圈</button>
+        <button @click="currentTab = 'chords'" :class="['flex-1 py-3 text-xs font-bold transition-all border-b-2', currentTab === 'chords' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-gray-500']">🎼 順階和弦</button>
+        <button @click="currentTab = 'detector'" :class="['flex-1 py-3 text-xs font-bold transition-all border-b-2', currentTab === 'detector' ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-gray-500']">🔍 和弦定調</button>
+    </div>
+
     <main class="flex-1 p-4 overflow-y-auto">
         
-        <!-- Section 1: 五度圈互動圖 -->
-        <section class="mb-6">
-            <h2 class="text-lg font-bold text-gray-700 mb-3 flex items-center">
-                <span class="mr-2">⭕</span> 互動五度圈 (Circle of Fifths)
-            </h2>
-            <p class="text-xs text-gray-500 mb-4">點擊下方任一調性，即可查詢其詳細音階與關係小調：</p>
-            
-            <!-- 圓形五度圈佈局 -->
-            <div class="relative w-72 h-72 mx-auto bg-gray-50 rounded-full border-4 border-indigo-100 shadow-inner flex items-center justify-center">
-                <div v-for="(key, index) in keys" :key="key.major" 
-                     :style="getCirclePosition(index)"
-                     @click="selectKey(key)"
-                     :class="['absolute w-12 h-12 flex flex-col items-center justify-center rounded-full cursor-pointer transition-all transform hover:scale-110 shadow',
-                              selectedKey.major === key.major ? 'bg-indigo-600 text-white font-bold scale-105 ring-4 ring-indigo-300' : 'bg-white text-gray-800 hover:bg-indigo-50']">
-                    <span class="text-sm leading-none">{{ key.major }}</span>
-                    <span class="text-[10px] opacity-70 leading-none mt-0.5">{{ key.minor }}m</span>
+        <div v-if="currentTab === 'circle'">
+            <section class="mb-6">
+                <div class="relative w-72 h-72 mx-auto bg-gray-50 rounded-full border-4 border-indigo-100 shadow-inner flex items-center justify-center my-4">
+                    <div v-for="(key, index) in keysCircle" :key="key.major" :style="getCirclePosition(index)" @click="selectedKey = key"
+                         :class="['absolute w-12 h-12 flex flex-col items-center justify-center rounded-full cursor-pointer transition-all transform hover:scale-110 shadow', selectedKey.major === key.major ? 'bg-indigo-600 text-white font-bold scale-105' : 'bg-white text-gray-800']">
+                        <span class="text-sm leading-none">{{ key.major }}</span>
+                        <span class="text-[10px] opacity-70 leading-none mt-0.5">{{ key.minor }}m</span>
+                    </div>
+                    <div class="text-center pointer-events-none">
+                        <div class="text-xs text-gray-400">當前選擇</div>
+                        <div class="text-lg font-bold text-indigo-600">{{ selectedKey.major }} 大調</div>
+                    </div>
                 </div>
-                <!-- 中心點裝飾 -->
-                <div class="text-center pointer-events-none">
-                    <div class="text-xs text-gray-400">當前選擇</div>
-                    <div class="text-xl font-bold text-indigo-600">{{ selectedKey.major }} 大調</div>
+            </section>
+            <section class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100">
+                <div class="mb-3 bg-white p-3 rounded-xl shadow-sm"><div class="text-xs text-gray-500 font-medium">關係小調</div><div class="text-base font-bold text-purple-700 mt-1">{{ selectedKey.minor }} 自然小調 ({{ selectedKey.minor }}m)</div></div>
+                <div class="mb-3 bg-white p-3 rounded-xl shadow-sm"><div class="text-xs text-gray-500 font-medium">大調音階</div><div class="flex gap-1.5 mt-1.5 overflow-x-auto"><span v-for="note in selectedKey.majorScale" class="bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded text-sm">{{ note }}</span></div></div>
+                <div class="bg-white p-3 rounded-xl shadow-sm"><div class="text-xs text-gray-500 font-medium">小調音階</div><div class="flex gap-1.5 mt-1.5 overflow-x-auto"><span v-for="note in selectedKey.minorScale" class="bg-purple-100 text-purple-800 font-semibold px-2 py-0.5 rounded text-sm">{{ note }}</span></div></div>
+                <div class="mt-2 text-right text-xs text-gray-400 italic">{{ selectedKey.signature }}</div>
+            </section>
+        </div>
+
+        <div v-if="currentTab === 'chords'">
+            <div class="flex bg-gray-100 p-1 rounded-xl mb-4">
+                <button @click="isMajorChord = true" :class="['flex-1 py-1.5 text-center text-xs font-medium rounded-md transition-all', isMajorChord ? 'bg-white text-emerald-700 shadow font-bold' : 'text-gray-500']">☀️ 大調 (Major)</button>
+                <button @click="isMajorChord = false" :class="['flex-1 py-1.5 text-center text-xs font-medium rounded-md transition-all', !isMajorChord ? 'bg-white text-purple-700 shadow font-bold' : 'text-gray-500']">🌙 自然小調 (Minor)</button>
+            </div>
+            <section class="mb-4">
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button v-for="root in rootNotes" :key="root" @click="selectedRootChord = root"
+                            :class="['py-1.5 text-xs font-medium rounded-lg border transition-all text-center', selectedRootChord === root ? (isMajorChord ? 'bg-emerald-600 text-white font-bold' : 'bg-purple-600 text-white font-bold') : 'bg-white text-gray-700']">
+                        {{ root }}
+                    </button>
                 </div>
-            </div>
-        </section>
-
-        <hr class="border-gray-200 my-4">
-
-        <!-- Section 2: 調性詳細資訊面板 -->
-        <section class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100">
-            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                <span class="mr-2">📋</span> 調性詳細報告：{{ selectedKey.major }} 大調
-            </h2>
-
-            <!-- 關係小調 -->
-            <div class="mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                <div class="text-xs text-gray-500 font-medium">關係小調 (Relative Minor)</div>
-                <div class="text-lg font-bold text-purple-700 mt-1">
-                    {{ selectedKey.minor }} 自然小調 ({{ selectedKey.minor }}m)
+            </section>
+            <section>
+                <h3 class="text-sm font-bold text-gray-800 mb-2">✨ {{ selectedRootChord }}{{ isMajorChord ? '大調' : '自然小調' }}順階和弦</h3>
+                <div class="space-y-1.5">
+                    <div v-for="(chord, index) in currentChords" :key="index" class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-200/60">
+                        <div class="flex items-center space-x-2">
+                            <span :class="['w-7 p-1 rounded-full flex items-center justify-center text-[10px] font-bold', isMajorChord ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800']">{{ chord.roman }}</span>
+                            <div><div class="font-bold text-gray-800 text-sm">{{ chord.name }}</div><div class="text-[9px] text-gray-400">{{ chord.type }}</div></div>
+                        </div>
+                        <div class="text-xs font-semibold text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-100">{{ chord.notes.join(' · ') }}</div>
+                    </div>
                 </div>
-            </div>
+            </section>
+        </div>
 
-            <!-- 大調音階 -->
-            <div class="mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                <div class="text-xs text-gray-500 font-medium">大調自然音階 (Major Scale)</div>
-                <div class="flex gap-1.5 mt-2 overflow-x-auto pb-1">
-                    <span v-for="(note, i) in selectedKey.majorScale" :key="i"
-                          class="bg-indigo-100 text-indigo-800 font-semibold px-2.5 py-1 rounded text-sm min-w-[2rem] text-center">
-                        {{ note }}
-                    </span>
-                </div>
-            </div>
+        <div v-if="currentTab === 'detector'">
+            <section class="mb-4">
+                <label class="text-xs font-bold text-gray-500 block mb-1.5">請輸入歌譜中的和弦 (用英文逗號隔開)：</label>
+                <input type="text" v-model="userInputChords" placeholder="例如: F#m, C#, Bb, Ebm" 
+                       class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm shadow-sm transition-all" />
+                <p class="text-[11px] text-gray-400 mt-1">💡 支援格式：C, Dm, F#m, G7, Bb, Csus4, Gdim...</p>
+            </section>
 
-            <!-- 小調音階 -->
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                <div class="text-xs text-gray-500 font-medium">關係小調自然音階 (Natural Minor Scale)</div>
-                <div class="flex gap-1.5 mt-2 overflow-x-auto pb-1">
-                    <span v-for="(note, i) in selectedKey.minorScale" :key="i"
-                          class="bg-purple-100 text-purple-800 font-semibold px-2.5 py-1 rounded text-sm min-w-[2rem] text-center">
-                        {{ note }}
-                    </span>
+            <section>
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-bold text-gray-800">🔍 智慧調性判定結果 (排序由高至低)</h3>
+                    <button @click="userInputChords = ''" class="text-xs text-red-500 hover:underline">清空</button>
                 </div>
-            </div>
-            
-            <!-- 升降記號提示 -->
-            <div class="mt-3 text-right text-xs text-gray-400 italic">
-                {{ selectedKey.signature }}
-            </div>
-        </section>
+
+                <div v-if="cleanedInputChords.length === 0" class="text-center py-8 text-gray-400 text-xs bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    請在上方輸入和弦，系統將自動為您演算調性
+                </div>
+
+                <div v-else class="space-y-2">
+                    <div v-for="(result, index) in detectedKeys" :key="index" 
+                         class="bg-white border border-gray-200 rounded-xl p-3 shadow-sm hover:border-indigo-200 transition-all">
+                        
+                        <div class="flex justify-between items-center mb-1.5">
+                            <div class="flex items-center space-x-2">
+                                <span :class="['px-2 py-0.5 text-xs font-bold rounded', result.isMajor ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800']">
+                                    {{ result.keyName }}
+                                </span>
+                            </div>
+                            <div class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                契合度 {{ result.matchPercentage }}%
+                            </div>
+                        </div>
+
+                        <div class="text-[11px] text-gray-500">
+                            <span class="font-medium text-emerald-700">符合和弦:</span> 
+                            <span v-if="result.matched.length > 0" class="font-semibold text-gray-700"> {{ result.matched.join(', ') }}</span>
+                            <span v-else class="text-gray-400"> 無直接符合</span>
+                            <span v-if="result.unmatched.length > 0" class="text-gray-400 ml-1">(未符合: {{ result.unmatched.join(', ') }})</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-100 text-center py-3 text-xs text-gray-400 border-t border-gray-200">
-        💡 提示：順時針每隔一格增加一個升號 (#)，逆時針增加一個降號 (♭)
+    <footer class="bg-gray-100 text-center py-2.5 text-[11px] text-gray-400 border-t border-gray-200">
+        音樂小工具 · 樂理智慧隨身查
     </footer>
 
 </div>
 
 <script>
-    const { createApp, ref } = Vue;
+    const { createApp, ref, computed } = Vue;
 
     createApp({
         setup() {
-            // 完整的 12 個調性資料（依據五度圈順時針排列：C -> G -> D ...）
-            const keys = [
+            const currentTab = ref('circle');
+
+            // --- 基礎調性與和弦數據庫 ---
+            const keysCircle = [
                 { major: 'C', minor: 'A', signature: '無升降記號', majorScale: ['C', 'D', 'E', 'F', 'G', 'A', 'B'], minorScale: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
                 { major: 'G', minor: 'E', signature: '1 個升號 (#F)', majorScale: ['G', 'A', 'B', 'C', 'D', 'E', 'F#'], minorScale: ['E', 'F#', 'G', 'A', 'B', 'C', 'D'] },
                 { major: 'D', minor: 'B', signature: '2 個升號 (#F, #C)', majorScale: ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'], minorScale: ['B', 'C#', 'D', 'E', 'F#', 'G', 'A'] },
@@ -124,35 +152,164 @@
                 { major: 'B♭', minor: 'G', signature: '2 個降號 (♭B, ♭E)', majorScale: ['B♭', 'C', 'D', 'E♭', 'F', 'G', 'A'], minorScale: ['G', 'A', 'B♭', 'C', 'D', 'E♭', 'F'] },
                 { major: 'F', minor: 'D', signature: '1 個降號 (♭B)', majorScale: ['F', 'G', 'A', 'B♭', 'C', 'D', 'E'], minorScale: ['D', 'E', 'F', 'G', 'A', 'B♭', 'C'] }
             ];
+            const selectedKey = ref(keysCircle[0]);
 
-            // 預設選擇 C 大調
-            const selectedKey = ref(keys[0]);
-
-            const selectKey = (key) => {
-                selectedKey.value = key;
-            };
-
-            // 用數學三角函數動態計算 12 個調在圓圈上的 (x, y) 座標
             const getCirclePosition = (index) => {
-                const total = 12;
-                const radius = 110; // 圓半徑 (px)
-                // 減去 Math.PI / 2 是為了讓 C 調（index 0）保持在正上方 12 點鐘方向
+                const total = 12; const radius = 110;
                 const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
-                
-                const x = Math.round(radius * Math.cos(angle));
-                const y = Math.round(radius * Math.sin(angle));
-                
-                // 返回 CSS 樣式，利用 translate 移動到相對中心點的位置
-                return {
-                    transform: `translate(${x}px, ${y}px)`
-                };
+                return { transform: `translate(${Math.round(radius * Math.cos(angle))}px, ${Math.round(radius * Math.sin(angle))}px)` };
             };
+
+            const rootNotes = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'D♭', 'A♭', 'E♭', 'B♭', 'F'];
+            const selectedRootChord = ref('C');
+            const isMajorChord = ref(true);
+
+            // 核心大數據庫（支援 12 個調各自的常用順階和弦名）
+            const chordsData = {
+                'C': {
+                    major: ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim', 'Cmaj7', 'Dm7', 'Em7', 'Fmaj7', 'G7', 'Am7', 'Bm7b5'],
+                    minor: ['Cm', 'Ddim', 'Eb', 'Fm', 'Gm', 'Ab', 'Bb', 'Cm7', 'Dm7b5', 'Ebmaj7', 'Fm7', 'Gm7', 'Abmaj7', 'Bb7']
+                },
+                'G': {
+                    major: ['G', 'Am', 'Bm', 'C', 'D', 'Em', 'F#dim', 'Gmaj7', 'Am7', 'Bm7', 'Cmaj7', 'D7', 'Em7', 'F#m7b5'],
+                    minor: ['Gm', 'Adim', 'Bb', 'Cm', 'Dm', 'Eb', 'F', 'Gm7', 'Am7b5', 'Bbmaj7', 'Cm7', 'Dm7', 'Ebmaj7', 'F7']
+                },
+                'D': {
+                    major: ['D', 'Em', 'F#m', 'G', 'A', 'Bm', 'C#dim', 'Dmaj7', 'Em7', 'F#m7', 'Gmaj7', 'A7', 'Bm7', 'C#m7b5'],
+                    minor: ['Dm', 'Edim', 'F', 'Gm', 'Am', 'Bb', 'C', 'Dm7', 'Em7b5', 'Fmaj7', 'Gm7', 'Am7', 'Bbmaj7', 'C7']
+                },
+                'A': {
+                    major: ['A', 'Bm', 'C#m', 'D', 'E', 'F#m', 'G#dim', 'Amaj7', 'Bm7', 'C#m7', 'Dmaj7', 'E7', 'F#m7', 'G#m7b5'],
+                    minor: ['Am', 'Bdim', 'C', 'Dm', 'Em', 'F', 'G', 'Am7', 'Bm7b5', 'Cmaj7', 'Dm7', 'Em7', 'Fmaj7', 'G7']
+                },
+                'E': {
+                    major: ['E', 'F#m', 'G#m', 'A', 'B', 'C#m', 'D#dim', 'Emaj7', 'F#m7', 'G#m7', 'Amaj7', 'B7', 'C#m7', 'D#m7b5'],
+                    minor: ['Em', 'F#dim', 'G', 'Am', 'Bm', 'C', 'D', 'Em7', 'F#m7b5', 'Gmaj7', 'Am7', 'Bm7', 'Cmaj7', 'D7']
+                },
+                'B': {
+                    major: ['B', 'C#m', 'D#m', 'E', 'F#', 'G#m', 'A#dim', 'Bmaj7', 'C#m7', 'D#m7', 'Emaj7', 'F#7', 'G#m7', 'A#m7b5'],
+                    minor: ['Bm', 'C#dim', 'D', 'Em', 'F#m', 'G', 'A', 'Bm7', 'C#m7b5', 'Dmaj7', 'Em7', 'F#m7', 'Gmaj7', 'A7']
+                },
+                'F#': {
+                    major: ['F#', 'G#m', 'A#m', 'B', 'C#', 'D#m', 'E#dim', 'F#maj7', 'G#m7', 'A#m7', 'Bmaj7', 'C#7', 'D#m7', 'E#m7b5'],
+                    minor: ['F#m', 'G#dim', 'A', 'Bm', 'C#m', 'D', 'E', 'F#m7', 'G#m7b5', 'Amaj7', 'Bm7', 'C#m7', 'Dmaj7', 'E7']
+                },
+                'D♭': {
+                    major: ['D♭', 'E♭m', 'Fm', 'G♭', 'A♭', 'B♭m', 'Cdim', 'D♭maj7', 'E♭m7', 'Fm7', 'G♭maj7', 'A♭7', 'B♭m7', 'Cm7b5', 'C#', 'D#m', 'Fm', 'F#', 'G#', 'A#m'],
+                    minor: ['C#m', 'D#dim', 'E', 'F#m', 'G#m', 'A', 'B', 'C#m7', 'D#m7b5', 'Emaj7', 'F#m7', 'G#m7', 'Amaj7', 'B7', 'Bbm', 'Cdim', 'Db', 'Ebm', 'Fm', 'Gb', 'Ab']
+                },
+                'A♭': {
+                    major: ['A♭', 'B♭m', 'Cm', 'D♭', 'E♭', 'Fm', 'Gdim', 'A♭maj7', 'B♭m7', 'Cm7', 'D♭maj7', 'E♭7', 'Fm7', 'Gm7b5', 'G#', 'A#m', 'Cm', 'C#', 'D#', 'Fm'],
+                    minor: ['G#m', 'A#dim', 'B', 'C#m', 'D#m', 'E', 'F#', 'G#m7', 'A#m7b5', 'Bmaj7', 'C#m7', 'D#m7', 'Emaj7', 'F#7', 'Fm', 'Gdim', 'Ab', 'Bbm', 'Cm', 'Db', 'Eb']
+                },
+                'E♭': {
+                    major: ['E♭', 'Fm', 'Gm', 'A♭', 'B♭', 'Cm', 'Ddim', 'E♭maj7', 'Fm7', 'Gm7', 'A♭maj7', 'B♭7', 'Cm7', 'Dm7b5', 'D#', 'Fm', 'Gm', 'G#', 'A#', 'Cm'],
+                    minor: ['Cm', 'Ddim', 'E♭', 'Fm', 'Gm', 'A♭', 'B♭', 'Cm7', 'Dm7b5', 'E♭maj7', 'Fm7', 'Gm7', 'A♭maj7', 'B♭7', 'D#m', 'Fm']
+                },
+                'B♭': {
+                    major: ['B♭', 'Cm', 'Dm', 'E♭', 'F', 'Gm', 'Adim', 'B♭maj7', 'Cm7', 'Dm7', 'E♭maj7', 'F7', 'Gm7', 'Am7b5', 'A#', 'Cm', 'Dm', 'D#', 'F', 'Gm'],
+                    minor: ['Gm', 'Adim', 'B♭', 'Cm', 'Dm', 'E♭', 'F', 'Gm7', 'Am7b5', 'B♭maj7', 'Cm7', 'Dm7', 'E♭maj7', 'F7', 'A#m']
+                },
+                'F': {
+                    major: ['F', 'Gm', 'Am', 'B♭', 'C', 'Dm', 'Edim', 'Fmaj7', 'Gm7', 'Am7', 'B♭maj7', 'C7', 'Dm7', 'Em7b5', 'F', 'Gm', 'Am', 'A#', 'C', 'Dm'],
+                    minor: ['Dm', 'Edim', 'F', 'Gm', 'Am', 'B♭', 'C', 'Dm7', 'Em7b5', 'Fmaj7', 'Gm7', 'Am7', 'B♭maj7', 'C7']
+                }
+            };
+
+            // 為了畫面上「順階和弦」分頁可以顯示詳細資訊（保留原有功能）
+            const detailedChordsForView = computed(() => {
+                const root = selectedRootChord.value;
+                const parseNotes = (arr) => arr.map(n => ({ roman: '—', name: n, type: '和弦', notes: [n] }));
+                if (isMajorChord.value) {
+                    return chordsData[root].major.slice(0, 7).map((name, i) => ({ roman: ['I','ii','iii','IV','V','vi','vii°'][i], name, type: i==0||i==3||i==4?'大三':'小三', notes: [name] }));
+                } else {
+                    return chordsData[root].minor.slice(0, 7).map((name, i) => ({ roman: ['i','ii°','III','iv','v','VI','VII'][i], name, type: '和弦', notes: [name] }));
+                }
+            });
+
+            // --- 🌟 逆向調性分析邏輯 ---
+            const userInputChords = ref('');
+            
+            // 清理用戶輸入，變成乾淨的 Array
+            const cleanedInputChords = computed(() => {
+                if (!userInputChords.value) return [];
+                return userInputChords.value
+                    .split(',')
+                    .map(c => c.trim())
+                    .filter(c => c.length > 0);
+            });
+
+            // 計算出所有調性的契合度百分比
+            const detectedKeys = computed(() => {
+                const inputs = cleanedInputChords.value;
+                if (inputs.length === 0) return [];
+
+                let results = [];
+
+                // 遍歷 12 個根音
+                for (let root in chordsData) {
+                    // 1. 測試大調
+                    let majorChords = chordsData[root].major;
+                    let matchedMajor = [];
+                    let unmatchedMajor = [];
+                    
+                    inputs.forEach(chord => {
+                        // 模糊比對：將和弦名稱轉化，例如簡化 sus4 或 b5 來進行順階匹配
+                        let isMatch = majorChords.some(mc => mc.toLowerCase() === chord.toLowerCase() || chord.toLowerCase().includes(mc.toLowerCase()));
+                        if (isMatch) matchedMajor.push(chord);
+                        else unmatchedMajor.push(chord);
+                    });
+
+                    let majorPercentage = Math.round((matchedMajor.length / inputs.length) * 100);
+                    if (majorPercentage > 0) {
+                        results.push({
+                            keyName: `${root} 大調 (Major)`,
+                            isMajor: true,
+                            matchPercentage: majorPercentage,
+                            matched: matchedMajor,
+                            unmatched: unmatchedMajor
+                        });
+                    }
+
+                    // 2. 測試小調
+                    let minorChords = chordsData[root].minor;
+                    let matchedMinor = [];
+                    let unmatchedMinor = [];
+                    
+                    inputs.forEach(chord => {
+                        let isMatch = minorChords.some(mic => mic.toLowerCase() === chord.toLowerCase() || chord.toLowerCase().includes(mic.toLowerCase()));
+                        if (isMatch) matchedMinor.push(chord);
+                        else unmatchedMinor.push(chord);
+                    });
+
+                    let minorPercentage = Math.round((matchedMinor.length / inputs.length) * 100);
+                    if (minorPercentage > 0) {
+                        results.push({
+                            keyName: `${root} 自然小調 (Minor)`,
+                            isMajor: false,
+                            matchPercentage: minorPercentage,
+                            matched: matchedMinor,
+                            unmatched: unmatchedMinor
+                        });
+                    }
+                }
+
+                // 排序：契合度由高到低，如果百分比一樣，符合和弦多的在前面
+                return results.sort((a, b) => b.matchPercentage - a.matchPercentage);
+            });
 
             return {
-                keys,
+                currentTab,
+                keysCircle,
                 selectedKey,
-                selectKey,
-                getCirclePosition
+                getCirclePosition,
+                rootNotes,
+                selectedRootChord,
+                isMajorChord,
+                currentChords: detailedChordsForView,
+                userInputChords,
+                cleanedInputChords,
+                detectedKeys
             };
         }
     }).mount('#app');
